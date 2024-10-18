@@ -28,7 +28,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-public class Main {
+public class InwonerplanValidator {
     public static void main(String[] args) {
         // Create the main frame
         JFrame frame = new JFrame("Inwonerplan Editor");
@@ -184,7 +184,7 @@ public class Main {
         StringBuilder content = new StringBuilder();
         try {
             // Get the file as an InputStream from the resource folder
-            InputStream inputStream = Main.class.getClassLoader().getResourceAsStream(filename);
+            InputStream inputStream = InwonerplanValidator.class.getClassLoader().getResourceAsStream(filename);
             if (inputStream == null) {
                 System.err.println("File not found: " + filename);
                 return null;

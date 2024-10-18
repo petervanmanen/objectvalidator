@@ -70,6 +70,19 @@ tasks.named("generateJsonSchema2Pojo") {
     dependsOn("jsonSchema")
 }
 
+tasks.withType<Jar> {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(sourceSets.main.get().output)
+
+    // Include runtime dependencies
+    from({
+        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+    })
+
+    manifest {
+        attributes["Main-Class"] = "com.ritense.InwonerplanValidator"
+    }
+}
 
 tasks.test {
     useJUnitPlatform()
