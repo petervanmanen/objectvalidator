@@ -24,7 +24,7 @@ dependencies {
 }
 
 
-
+/*
 tasks.create("jsonSchema-objects", GenerateJsonSchemaJavaTask::class) {
     // configured here so that gradle knows when the task has to be run again
     val inputFiles = files(
@@ -54,21 +54,21 @@ tasks.create("jsonSchema-objects", GenerateJsonSchemaJavaTask::class) {
             setAnnotationStyle("JACKSON2")
         }
     }
-}
+}*/
 
-tasks.compileJava {
+/*tasks.compileJava {
     dependsOn("jsonSchema")
-}
-
+}*/
+/*
 tasks.register("jsonSchema") {
     dependsOn(tasks.matching { it.name.startsWith("jsonSchema-") })
-}
-
+}*/
+/*
 tasks.named("generateJsonSchema2Pojo") {
     // ensure that jsonSchema task is run whenever jsonschema2pojo is run
     // this is done to prevent confusion with developers why that task is not generating the schema's
     dependsOn("jsonSchema")
-}
+}*/
 
 tasks.withType<Jar> {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
