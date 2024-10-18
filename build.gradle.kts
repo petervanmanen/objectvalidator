@@ -39,6 +39,7 @@ tasks.withType<Jar> {
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
+            from(components["java"])
             pom {
                 name = "ObjectValidator"
                 description = "A concise description of my library"
