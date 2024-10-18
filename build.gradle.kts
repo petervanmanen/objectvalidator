@@ -71,8 +71,8 @@ publishing {
                     name = "GitHubPackages"
                     url = URI("https://maven.pkg.github.com/petervanmanen/objectvalidator")
                     credentials {
-                        username = System.getenv("username")
-                        password = System.getenv("token")
+                        username = System.getenv("USERNAME")
+                        password = System.getenv("TOKEN")
                     }
                 }
             }
