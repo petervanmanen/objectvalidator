@@ -42,11 +42,36 @@ public class InwonerplanValidator {
 
         // Create the left panel with a text area
         JPanel leftPanel = new JPanel(new BorderLayout());
-        JTextArea leftTextArea = new JTextArea();
-        leftTextArea.setEditable(true);
-        leftTextArea.setText(readContent());
-        JScrollPane textScrollPane = new JScrollPane(leftTextArea);  // Adding scroll capability
-        leftPanel.add(textScrollPane, BorderLayout.CENTER);
+        JTabbedPane leftTabPanel = new JTabbedPane();
+        leftPanel.add(leftTabPanel, BorderLayout.CENTER);
+
+        final JTextPane objectTextPane = new JTextPane();
+        objectTextPane.setText(readInwonerplanJson());
+        JScrollPane scrollPane = new JScrollPane(objectTextPane);
+        TextLineNumber objectLineNumber = new TextLineNumber(objectTextPane, 3);
+        objectLineNumber.setUpdateFont(false);
+        float fontSize = objectTextPane.getFont().getSize() - 6;
+        Font font = objectTextPane.getFont().deriveFont( fontSize );
+        scrollPane.setRowHeaderView( objectLineNumber );
+        leftTabPanel.add("Object", scrollPane);
+
+        /*
+        JTextArea schemaTextArea = new JTextArea();
+        schemaTextArea.setEditable(true);
+        schemaTextArea.setText(readInwonerplanSchema());
+        JScrollPane schemaTextScrollPane = new JScrollPane(schemaTextArea);  // Adding scroll capability
+        leftTabPanel.add("Schema",schemaTextScrollPane);*/
+        final JTextPane schemaTextPane = new JTextPane();
+        schemaTextPane.setText(readInwonerplanSchema());
+        JScrollPane schemaScrollPane = new JScrollPane(schemaTextPane);
+        TextLineNumber schemaLineNumber = new TextLineNumber(schemaTextPane, 3);
+        schemaLineNumber.setUpdateFont(false);
+        fontSize = schemaTextPane.getFont().getSize() - 6;
+        font = schemaTextPane.getFont().deriveFont( fontSize );
+        schemaScrollPane.setRowHeaderView( schemaLineNumber );
+        leftTabPanel.add("Schema", schemaScrollPane);
+
+
         splitPane.setLeftComponent(leftPanel);
 
         // Create a button to format the JSON in the text area
@@ -58,26 +83,23 @@ public class InwonerplanValidator {
         buttonPanel.add(validateButton);
         leftPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-
         // Create the right panel (empty)
         JPanel rightPanel = new JPanel(new BorderLayout());
-        JPanel innerRightPanel = new JPanel(new BorderLayout());
+        JTabbedPane rightTabPanel = new JTabbedPane();
 
         JTree jsonTree = new JTree();
         jsonTree.setVisible(false);
         JScrollPane treeScrollPane = new JScrollPane(jsonTree);
-        //rightPanel.add(treeScrollPane, BorderLayout.CENTER);
+        rightTabPanel.add("JSON Tree",treeScrollPane);
 
         JTextArea rightTextArea = new JTextArea();
         rightTextArea.setEditable(false);
         rightTextArea.setText("");
         JScrollPane rightTextScrollPane = new JScrollPane(rightTextArea);  // Adding scroll capability
         rightTextScrollPane.setVisible(true);
-        //rightPanel.add(rightTextScrollPane, BorderLayout.CENTER);
-        rightPanel.add(innerRightPanel, BorderLayout.CENTER);
+        rightTabPanel.add("Validation",rightTextScrollPane);
+        rightPanel.add(rightTabPanel, BorderLayout.CENTER);
 
-
-        //treeScrollPane.setVisible(false);
         JButton visualizeButton = new JButton("Visualize JSON");
         rightPanel.add(visualizeButton, BorderLayout.SOUTH);
 
@@ -87,14 +109,18 @@ public class InwonerplanValidator {
         formatButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String unformattedJson = leftTextArea.getText();
+                String unformattedJson = objectTextPane.getText();
                 String formattedJson = formatJson(unformattedJson);
-                leftTextArea.setText(formattedJson);
+                objectTextPane.setText(formattedJson);
+
+                unformattedJson = schemaTextPane.getText();
+                formattedJson = formatJson(unformattedJson);
+                schemaTextPane.setText(formattedJson);
             }
         });
 
         visualizeButton.addActionListener(e -> {
-            String jsonText = leftTextArea.getText();
+            String jsonText = objectTextPane.getText();
             if (jsonText != null && !jsonText.isEmpty()) {
                 try {
                     // Convert the JSON string into a JSONObject
@@ -112,9 +138,7 @@ public class InwonerplanValidator {
 
                     treeScrollPane.setVisible(true);
 
-                    innerRightPanel.removeAll();
-                    innerRightPanel.add(treeScrollPane);
-                    innerRightPanel.revalidate();
+                    rightTabPanel.setSelectedIndex(0);
 
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(frame, "Invalid JSON provided!", "Error", JOptionPane.ERROR_MESSAGE);
@@ -125,11 +149,11 @@ public class InwonerplanValidator {
 
         // Action listener for Validate JSON button to validate JSON against schema
         validateButton.addActionListener(e -> {
-            String jsonText = leftTextArea.getText();
+            String jsonText = objectTextPane.getText();
             if (jsonText != null && !jsonText.isEmpty()) {
                 try {
 
-                    JsonValue schemaJson = new JsonParser(readFileFromResources("schemas/inwonerplan.schema.json")).parse();
+                    JsonValue schemaJson = new JsonParser(schemaTextPane.getText().toString()).parse();
                     Schema schema = new SchemaLoader(schemaJson).load();
 
                     Validator validator = Validator.create(schema, new ValidatorConfig(FormatValidationPolicy.DEPENDS_ON_VOCABULARY));
@@ -138,17 +162,13 @@ public class InwonerplanValidator {
                     if(failure==null) {
 
                         rightTextArea.setText("JSON validated successfully!");
-                        innerRightPanel.removeAll();
-                        innerRightPanel.add(rightTextScrollPane);
-                        innerRightPanel.revalidate();
+                        rightTabPanel.setSelectedIndex(1);
                     }
                     else {
                         System.out.println(failure.toString());
 
                         rightTextArea.setText(failure.toString());
-                        innerRightPanel.removeAll();
-                        innerRightPanel.add(rightTextScrollPane);
-                        innerRightPanel.revalidate();
+                        rightTabPanel.setSelectedIndex(1);
                     }
                 }
                 catch (Exception ex) {
@@ -170,11 +190,19 @@ public class InwonerplanValidator {
     }
 
 
-    private static String readContent(){
+    private static String readInwonerplanJson(){
         String content = readFileFromResources("inwonerplan.json");
         if (content != null) {
             return content;
-            //return formatJson(content);
+        } else {
+            return "File not found or could not be loaded.";
+        }
+    }
+
+    private static String readInwonerplanSchema(){
+        String content = readFileFromResources("schemas/inwonerplan.schema.json");
+        if (content != null) {
+            return content;
         } else {
             return "File not found or could not be loaded.";
         }
