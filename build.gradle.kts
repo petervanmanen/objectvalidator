@@ -1,3 +1,5 @@
+import java.net.URI
+
 plugins {
     id("java")
     id("maven-publish")
@@ -67,7 +69,7 @@ publishing {
             repositories {
                 maven {
                     name = "GitHubPackages"
-                    url = "https://maven.pkg.github.com/petervanmanen/objectvalidator"
+                    url = URI("https://maven.pkg.github.com/petervanmanen/objectvalidator")
                     credentials {
                         username = System.getenv("GITHUB_ACTOR")
                         password = System.getenv("GITHUB_TOKEN")
