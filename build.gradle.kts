@@ -1,6 +1,6 @@
 plugins {
     id("java")
-
+    id("maven-publish")
 }
 
 group = "com.ritense"
@@ -33,6 +33,41 @@ tasks.withType<Jar> {
         attributes["Main-Class"] = "com.ritense.InwonerplanValidator"
     }
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            pom {
+                name = "ObjectValidator"
+                description = "A concise description of my library"
+                url = "https://github.com/petervanmanen/objectvalidator/"
+          /*      properties = mapOf(
+                    "myProp" to "value",
+                    "prop.with.dots" to "anotherValue"
+                )*/
+                licenses {
+                    license {
+                        name = "The Apache License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
+                }
+                developers {
+                    developer {
+                        id = "Peter van Manen"
+                        name = "Peter van Manen"
+                        email = "peter.van.manen@ritense.com"
+                    }
+                }
+                scm {
+                    connection = "scm:git:git://ithub.com:petervanmanen/objectvalidator.git"
+                    developerConnection = "scm:git:ssh://github.com:petervanmanen/objectvalidator.git"
+                    url = "https://github.com/petervanmanen/objectvalidator/"
+                }
+            }
+        }
+    }
+}
+
 
 tasks.test {
     useJUnitPlatform()
