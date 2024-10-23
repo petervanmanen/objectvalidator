@@ -1,5 +1,6 @@
 package com.ritense;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
@@ -13,9 +14,17 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.Temporal;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.erosb.jsonsKema.FormatValidationPolicy;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.JsonValue;
@@ -24,12 +33,18 @@ import com.github.erosb.jsonsKema.SchemaLoader;
 import com.github.erosb.jsonsKema.ValidationFailure;
 import com.github.erosb.jsonsKema.Validator;
 import com.github.erosb.jsonsKema.ValidatorConfig;
+import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTimeZone;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
 public class InwonerplanValidator {
+    static ObjectMapper objectMapper = new ObjectMapper();
+
     public static void main(String[] args) {
+        objectMapper.findAndRegisterModules();
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         // Create the main frame
         JFrame frame = new JFrame("Inwonerplan Editor");
         frame.setSize(1400, 1000);
@@ -79,8 +94,10 @@ public class InwonerplanValidator {
         buttonPanel.setLayout(new FlowLayout());
         JButton formatButton = new JButton("Format");
         JButton validateButton = new JButton("Validate");
+        JButton sanitize = new JButton("Sanitize");
         buttonPanel.add(formatButton);
         buttonPanel.add(validateButton);
+        buttonPanel.add(sanitize);
         leftPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Create the right panel (empty)
@@ -131,7 +148,6 @@ public class InwonerplanValidator {
 
                     // Set the tree model to display
                     jsonTree.setModel(new DefaultTreeModel(root.getRoot()));
-
                     jsonTree.setVisible(true);
                     // Expand all nodes in the tree
                     expandAllNodes(jsonTree, 0, jsonTree.getRowCount());
@@ -161,7 +177,7 @@ public class InwonerplanValidator {
                     ValidationFailure failure = validator.validate(instance);
                     if(failure==null) {
 
-                        rightTextArea.setText("JSON validated successfully!");
+                        rightTextArea.setText("JSON validated successfully against schema!");
                         rightTabPanel.setSelectedIndex(1);
                     }
                     else {
@@ -170,6 +186,13 @@ public class InwonerplanValidator {
                         rightTextArea.setText(failure.toString());
                         rightTabPanel.setSelectedIndex(1);
                     }
+                    ArrayList<String> arrayList = new ArrayList();
+                    arrayList.add(rightTextArea.getText());
+                    arrayList.addAll(validateInwonerPlan(jsonText));
+
+                    rightTextArea.setText(arrayList.stream().collect(Collectors.joining("\n")));
+
+
                 }
                 catch (Exception ex) {
                     JOptionPane.showMessageDialog(frame, "Exception occured " + ex.getMessage(), "Validation Error", JOptionPane.ERROR_MESSAGE);
@@ -180,7 +203,11 @@ public class InwonerplanValidator {
             }
         });
 
+        sanitize.addActionListener(e -> {
 
+            objectTextPane.setText(ontdubbelInwonerplan(objectTextPane.getText()));
+
+        });
 
         // Add the split pane to the frame
         frame.add(splitPane, BorderLayout.CENTER);
@@ -235,8 +262,7 @@ public class InwonerplanValidator {
 
     public static String formatJson(String unformattedJson) {
         try {
-            // Create ObjectMapper instance
-            ObjectMapper objectMapper = new ObjectMapper();
+
 
             // Read the unformatted JSON string into a generic Object (Map/POJO)
             Object json = objectMapper.readValue(unformattedJson, Object.class);
@@ -308,4 +334,156 @@ public class InwonerplanValidator {
             expandAllNodes(tree, rowCount, tree.getRowCount());
         }
     }
+
+
+    private static ArrayList<String> validateInwonerPlan(String inwonerplan){
+        ArrayList<String> response = new ArrayList<>();
+        InwonerplanSchema inwonerplanObj;
+        try {
+
+            inwonerplanObj = objectMapper.readValue(inwonerplan, InwonerplanSchema.class);
+        } catch (JsonProcessingException e) {
+            response.add(e.getMessage());
+            return response;
+        }
+
+        //elk inwonerplan moet een zaak hebben
+        if(StringUtils.isEmpty(inwonerplanObj.getZaaknummer()))
+            response.add("Zaaknummer is empty!");
+
+        if(StringUtils.isEmpty(inwonerplanObj.getInwonerprofielId()))
+            response.add("Inwonerprofiel is empty!");
+
+        if(inwonerplanObj.getInwonerplan().getDoelen().size()<=0){
+            response.add("Een inwonerplan moet minimaal 1 doel hebben");
+        }
+
+        response.add("Validatie ok");
+        return response;
+    }
+
+    /*
+    functie om dubbel aanbod, activiteiten en subdoelen op te schonen
+     */
+    private static String ontdubbelInwonerplan(String inwonerplan){
+        String inwonerplanJson = cleanupJson(inwonerplan);
+        InwonerplanSchema inwonerplanObj = null;
+        try {
+            inwonerplanObj = objectMapper.readValue(inwonerplanJson, InwonerplanSchema.class);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(new JFrame(), e.getMessage(), "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+
+        for(Doel doel: inwonerplanObj.getInwonerplan().getDoelen()){
+            for(Subdoel s: doel.getSubdoelen()){
+                ArrayList<Aanbod> newAanbodList = new ArrayList<>();
+                for(Aanbod currentAanbod: s.getAanbod()){
+                    if(!aanbodListContains(newAanbodList,currentAanbod)){
+                        newAanbodList.add(currentAanbod);
+                    }
+                }
+                s.setAanbod(newAanbodList);
+                ArrayList<Activiteit> newActiviteitenList = new ArrayList<>();
+                for(Activiteit currentActiviteit:s.getActiviteiten()){
+                    if(!activiteitListContains(newActiviteitenList,currentActiviteit)){
+                        newActiviteitenList.add(currentActiviteit);
+                    }
+                }
+                s.setActiviteiten(newActiviteitenList);
+            }
+        }
+
+        try {
+            return objectMapper.writeValueAsString(inwonerplanObj);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static boolean aanbodListContains(ArrayList<Aanbod> aanbodList,Aanbod aanbod){
+        for(Aanbod aanbod2: aanbodList){
+            if(aanbodEquals(aanbod2,aanbod)){
+                return true;
+            }
+        }
+        return false;
+    }
+    private static boolean subdoelEquals(Subdoel subdoel1, Subdoel subdoel2){
+
+        return true;
+    }
+    private static boolean aanbodEquals(Aanbod a1, Aanbod a2){
+        if(a1==null||a2==null){
+            return false;
+        }
+        if(!a1.getCodeAanbod().equalsIgnoreCase(a2.getCodeAanbod())){
+            return false;
+        }
+
+        //if(ChronoUnit.MINUTES.between(a1.getBegindatum().toGregorianCalendar().toZonedDateTime(), a2.getBegindatum().toGregorianCalendar().toZonedDateTime()) > 1){
+        if(ChronoUnit.MINUTES.between(a1.getBegindatum(), a2.getBegindatum()) > 1){
+            return false;
+        }
+
+        if(StringUtils.compareIgnoreCase(a1.getCodeRedenStatusAanbod(), a2.getCodeRedenStatusAanbod())>0){
+            return false;
+        }
+
+        if(StringUtils.compareIgnoreCase(a1.getCodeResultaatAanbod(), a2.getCodeResultaatAanbod())>0){
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean activiteitListContains(ArrayList<Activiteit> activiteitList,Activiteit activiteit){
+        for(Activiteit activiteit2: activiteitList){
+            if(activiteitEquals(activiteit2,activiteit)){
+                return true;
+            }
+        }
+        return false;
+    }
+    private static boolean activiteitEquals(Activiteit a1, Activiteit a2){
+        if(a1==null||a2==null){
+            return false;
+        }
+        if( a1.getUuid().equalsIgnoreCase(a2.getUuid())) {
+            return true;
+        }
+        if(a1.getCodeAanbod().equalsIgnoreCase(a2.getCodeAanbod()) && a1.getCodeAanbodactiviteit().equalsIgnoreCase(a2.getCodeAanbodactiviteit())) {
+            return true;
+        }
+        return false;
+    }
+
+    private static String cleanupJson(String inwonerplan) {
+
+        String inwonerplanJson = inwonerplan.replaceAll("(None)","null");
+        inwonerplanJson = inwonerplanJson.replaceAll("True","true");
+
+
+        inwonerplanJson = trimDateTimeNanoseconds(inwonerplanJson);
+        inwonerplanJson = inwonerplanJson.replaceAll("\\[GMT\\]","");
+        //er staan data geregistreerd op exact 00:00:00.000 ; dat is geen geldig format dus omzetten naar 1 seconden later
+        inwonerplanJson = inwonerplanJson.replaceAll("00:00:00.00000Z","00:00:01.001Z");
+        inwonerplanJson = inwonerplanJson.replaceAll("\\+\\d\\d:?\\d\\d","Z");
+
+        return inwonerplanJson;
+    }
+
+    public static String trimDateTimeNanoseconds(String input) {
+        // Regex pattern to match the datetime string with the nanoseconds part
+        String regex = "(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\d*(Z?)";
+        // Compile the pattern
+        Pattern pattern = Pattern.compile(regex);
+        // Create a matcher to find occurrences of the pattern
+        Matcher matcher = pattern.matcher(input);
+
+        // Replace all occurrences, keeping only the first three digits of the nanoseconds and appending 'Z'
+        return matcher.replaceAll("$1Z");
+    }
+
 }

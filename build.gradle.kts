@@ -3,10 +3,11 @@ import java.net.URI
 plugins {
     id("java")
     id("maven-publish")
+    id("org.jsonschema2pojo") version "1.2.2"
 }
 
 group = "com.ritense"
-version = "1.0.1-SNAPSHOT"
+version = "1.0.2-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -16,8 +17,12 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-core:2.18.0")
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.18.0")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.0")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.0")
+    //implementation("com.fasterxml.jackson.datatype:jackson-datatype-joda:2.18.0")
+    implementation("org.apache.commons:commons-lang3:3.12.0")
     implementation("org.json:json:20240303")
     implementation("com.github.erosb:json-sKema:0.18.0")
+    implementation ("joda-time:joda-time:2.13.0")
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
@@ -79,6 +84,27 @@ publishing {
             }
         }
     }
+}
+
+jsonSchema2Pojo {
+
+    val inputFiles = files(
+        project.layout.projectDirectory.dir("src/main/resources/schemas/inwonerplan.schema.json"),
+    )
+    setSource(inputFiles)
+
+    // Target directory for generated Java source files. The plugin will add this directory to the
+    // java source set so the compiler will find and compile the newly generated source files.
+    targetDirectory = project.layout.buildDirectory.dir("generated-sources/js2p").get().asFile
+    targetPackage = "com.ritense"
+
+    setSource(inputFiles)
+    setAnnotationStyle("JACKSON2")
+    //useJodaDates = true
+    dateType = "java.time.LocalDate"
+    dateTimeType = "java.time.ZonedDateTime"
+    //customDateTimePattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+
 }
 
 

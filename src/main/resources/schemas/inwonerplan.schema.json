@@ -70,20 +70,12 @@
     "aanbod": {
       "type": "object",
       "properties": {
-        "einddatum": {
-          "anyOf": [
-            {
-              "type": [
-                "string",
-                "null"
-              ],
-              "format": "date-time"
-            },
-            {
-              "type": "string",
-              "maxLength": 0
-            }
-          ]
+        "einddatum":{
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
         },
         "begindatum": {
           "type": [
@@ -159,19 +151,11 @@
           }
         },
         "einddatum": {
-          "anyOf": [
-            {
-              "type": [
-                "string",
-                "null"
-              ],
-              "format": "date-time"
-            },
-            {
-              "type": "string",
-              "maxLength": 0
-            }
-          ]
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
         },
         "begindatum": {
           "type": [
@@ -317,11 +301,19 @@
           ]
         },
         "geplandeAfhandeldatum": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date-time"
+          "anyOf": [
+            {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            {
+              "type": "string",
+              "maxLength": 0
+            }
+          ]
         }
       },
       "description": "Activiteit",
