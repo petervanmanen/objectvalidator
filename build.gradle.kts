@@ -18,7 +18,6 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.18.0")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.0")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.0")
-    //implementation("com.fasterxml.jackson.datatype:jackson-datatype-joda:2.18.0")
     implementation("org.apache.commons:commons-lang3:3.12.0")
     implementation("org.json:json:20240303")
     implementation("com.github.erosb:json-sKema:0.18.0")
@@ -49,10 +48,7 @@ publishing {
                 name = "ObjectValidator"
                 description = "A concise description of my library"
                 url = "https://github.com/petervanmanen/objectvalidator/"
-          /*      properties = mapOf(
-                    "myProp" to "value",
-                    "prop.with.dots" to "anotherValue"
-                )*/
+
                 licenses {
                     license {
                         name = "The Apache License, Version 2.0"
@@ -100,13 +96,10 @@ jsonSchema2Pojo {
 
     setSource(inputFiles)
     setAnnotationStyle("JACKSON2")
-    //useJodaDates = true
     dateType = "java.time.LocalDate"
     dateTimeType = "java.time.ZonedDateTime"
-    //customDateTimePattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
 
 }
-
 
 tasks.test {
     useJUnitPlatform()
