@@ -2,6 +2,7 @@ import java.net.URI
 
 plugins {
     id("java")
+    id("application")
     id("maven-publish")
     id("org.jsonschema2pojo") version "1.2.2"
 }
@@ -11,6 +12,10 @@ version = "1.0.2-SNAPSHOT"
 
 repositories {
     mavenCentral()
+}
+
+application {
+    mainClass = "com.ritense.InwonerplanValidator"
 }
 
 dependencies {
