@@ -399,7 +399,7 @@ public class InwonerplanValidator {
         * als identieke subdoelen in het inwonerplan staan schonen we alle afgeronde subdoelen van dat type af
         *
         * */
-/*        for(Doel doel: inwonerplanObj.getInwonerplan().getDoelen()){
+        for(Doel doel: inwonerplanObj.getInwonerplan().getDoelen()){
             if(doel.getCodeStatusDoel().equalsIgnoreCase("1")){
                 ArrayList subdoelList = new ArrayList<Subdoel>();
                 for(Subdoel s: doel.getSubdoelen()){
@@ -411,7 +411,7 @@ public class InwonerplanValidator {
                 }
                 doel.setSubdoelen(subdoelList);
             }
-        }*/
+        }
 
         try {
             return objectMapper.writeValueAsString(inwonerplanObj);
