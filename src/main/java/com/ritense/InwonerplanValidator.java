@@ -395,9 +395,30 @@ public class InwonerplanValidator {
             }
         }
 
+        /* nieuwe functie om meer te schonen
+        * als identieke subdoelen in het inwonerplan staan schonen we alle afgeronde subdoelen van dat type af
+        *
+        * */
+/*        for(Doel doel: inwonerplanObj.getInwonerplan().getDoelen()){
+            if(doel.getCodeStatusDoel().equalsIgnoreCase("1")){
+                ArrayList subdoelList = new ArrayList<Subdoel>();
+                for(Subdoel s: doel.getSubdoelen()){
+                    if(doel.getSubdoelen().stream().filter(subdoel -> subdoelEquals(subdoel,s)).count()>1){
+                        if(!s.getCodeStatusSubdoel().equalsIgnoreCase("2")){
+                            subdoelList.add(s);
+                        }
+                    }
+                }
+                doel.setSubdoelen(subdoelList);
+            }
+        }*/
+
         try {
             return objectMapper.writeValueAsString(inwonerplanObj);
         } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        } catch (Exception e){
             e.printStackTrace();
             throw new RuntimeException(e);
         }
@@ -411,10 +432,7 @@ public class InwonerplanValidator {
         }
         return false;
     }
-    private static boolean subdoelEquals(Subdoel subdoel1, Subdoel subdoel2){
 
-        return true;
-    }
     private static boolean aanbodEquals(Aanbod a1, Aanbod a2){
         if(a1==null||a2==null){
             return false;
@@ -424,9 +442,9 @@ public class InwonerplanValidator {
         }
 
         //if(ChronoUnit.MINUTES.between(a1.getBegindatum().toGregorianCalendar().toZonedDateTime(), a2.getBegindatum().toGregorianCalendar().toZonedDateTime()) > 1){
-        if(ChronoUnit.MINUTES.between(a1.getBegindatum(), a2.getBegindatum()) > 1){
+        /*if(ChronoUnit.MINUTES.between(a1.getBegindatum(), a2.getBegindatum()) > 1){
             return false;
-        }
+        }*/
 
         if(StringUtils.compareIgnoreCase(a1.getCodeRedenStatusAanbod(), a2.getCodeRedenStatusAanbod())>0){
             return false;
@@ -436,6 +454,18 @@ public class InwonerplanValidator {
             return false;
         }
         return true;
+    }
+
+    private static boolean subdoelEquals(Subdoel s1, Subdoel s2){
+        if(s1.getAandachtspuntId().equalsIgnoreCase(s2.getAandachtspuntId()) && s1.getAandachtspuntId()!=null && s2.getAandachtspuntId()!=null){
+            return true;
+        }
+
+        if(s1.getOntwikkelwensId().equalsIgnoreCase(s2.getOntwikkelwensId()) && s1.getOntwikkelwensId()!=null && s2.getOntwikkelwensId()!=null){
+            return true;
+        }
+
+        return false;
     }
 
     private static boolean activiteitListContains(ArrayList<Activiteit> activiteitList,Activiteit activiteit){
@@ -466,6 +496,8 @@ public class InwonerplanValidator {
 
 
         inwonerplanJson = trimDateTimeNanoseconds(inwonerplanJson);
+        // Replace all occurrences, keeping only the first three digits of the nanoseconds and appending 'Z'
+        inwonerplanJson = inwonerplanJson.replaceAll("(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\d*(Z?)","$1Z");
         inwonerplanJson = inwonerplanJson.replaceAll("\\[GMT\\]","");
         //er staan data geregistreerd op exact 00:00:00.000 ; dat is geen geldig format dus omzetten naar 1 seconden later
         inwonerplanJson = inwonerplanJson.replaceAll("00:00:00.00000Z","00:00:01.001Z");
