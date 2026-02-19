@@ -1,30 +1,11 @@
 package com.ritense;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-
-import javax.swing.*;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.Temporal;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.formdev.flatlaf.FlatDarculaLaf;
+import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.github.erosb.jsonsKema.FormatValidationPolicy;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.JsonValue;
@@ -33,219 +14,644 @@ import com.github.erosb.jsonsKema.SchemaLoader;
 import com.github.erosb.jsonsKema.ValidationFailure;
 import com.github.erosb.jsonsKema.Validator;
 import com.github.erosb.jsonsKema.ValidatorConfig;
-import org.apache.commons.lang3.StringUtils;
-import org.joda.time.DateTimeZone;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.JSONTokener;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import org.fife.ui.rsyntaxtextarea.Theme;
+import org.fife.ui.rtextarea.RTextScrollPane;
+
+import javax.swing.*;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
+import java.awt.*;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class InwonerplanValidator {
+
     static ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final int MAX_TREE_DEPTH = 50;
+    private static final int MAX_TREE_EXPAND_DEPTH = 3;
+
+    private JFrame frame;
+    private RSyntaxTextArea objectTextArea;
+    private RSyntaxTextArea schemaTextArea;
+    private JTextArea rightTextArea;
+    private JTree jsonTree;
+    private JScrollPane treeScrollPane;
+    private JTabbedPane rightTabPanel;
+    private JButton formatButton;
+    private JButton validateButton;
+    private JButton sanitizeButton;
+    private JButton visualizeButton;
+
+    // File tracking
+    private File currentFile;
+    private boolean modified;
+
+    // Status bar
+    private JLabel statusFileLabel;
+    private JLabel statusCursorLabel;
+    private JLabel statusMessageLabel;
+
+    // Theme tracking
+    private boolean darkTheme = false;
 
     public static void main(String[] args) {
         objectMapper.findAndRegisterModules();
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        // Create the main frame
-        JFrame frame = new JFrame("Inwonerplan Editor");
+
+        FlatIntelliJLaf.setup();
+
+        SwingUtilities.invokeLater(() -> new InwonerplanValidator().createAndShowGUI());
+    }
+
+    private void createAndShowGUI() {
+        frame = new JFrame("Inwonerplan Editor — Untitled");
         frame.setSize(1400, 1000);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                doExit();
+            }
+        });
         frame.setLayout(new BorderLayout());
 
-        // Create a JSplitPane to divide the screen
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(500);  // Split into two halves
+        // Menu bar
+        frame.setJMenuBar(createMenuBar());
 
-        // Create the left panel with a text area
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        splitPane.setDividerLocation(500);
+
+        // Left panel with tabs
         JPanel leftPanel = new JPanel(new BorderLayout());
         JTabbedPane leftTabPanel = new JTabbedPane();
         leftPanel.add(leftTabPanel, BorderLayout.CENTER);
 
-        final JTextPane objectTextPane = new JTextPane();
-        objectTextPane.setText(readInwonerplanJson());
-        JScrollPane scrollPane = new JScrollPane(objectTextPane);
-        TextLineNumber objectLineNumber = new TextLineNumber(objectTextPane, 3);
-        objectLineNumber.setUpdateFont(false);
-        float fontSize = objectTextPane.getFont().getSize() - 6;
-        Font font = objectTextPane.getFont().deriveFont( fontSize );
-        scrollPane.setRowHeaderView( objectLineNumber );
-        leftTabPanel.add("Object", scrollPane);
+        // Object pane — RSyntaxTextArea with JSON highlighting
+        objectTextArea = createSyntaxTextArea(true);
+        objectTextArea.setText(readInwonerplanJson());
+        objectTextArea.setCaretPosition(0);
+        objectTextArea.discardAllEdits();
+        RTextScrollPane objectScrollPane = new RTextScrollPane(objectTextArea);
+        leftTabPanel.add("Object", objectScrollPane);
 
-        /*
-        JTextArea schemaTextArea = new JTextArea();
-        schemaTextArea.setEditable(true);
+        // Schema pane — read-only
+        schemaTextArea = createSyntaxTextArea(false);
         schemaTextArea.setText(readInwonerplanSchema());
-        JScrollPane schemaTextScrollPane = new JScrollPane(schemaTextArea);  // Adding scroll capability
-        leftTabPanel.add("Schema",schemaTextScrollPane);*/
-        final JTextPane schemaTextPane = new JTextPane();
-        schemaTextPane.setText(readInwonerplanSchema());
-        JScrollPane schemaScrollPane = new JScrollPane(schemaTextPane);
-        TextLineNumber schemaLineNumber = new TextLineNumber(schemaTextPane, 3);
-        schemaLineNumber.setUpdateFont(false);
-        fontSize = schemaTextPane.getFont().getSize() - 6;
-        font = schemaTextPane.getFont().deriveFont( fontSize );
-        schemaScrollPane.setRowHeaderView( schemaLineNumber );
+        schemaTextArea.setCaretPosition(0);
+        schemaTextArea.setEditable(false);
+        RTextScrollPane schemaScrollPane = new RTextScrollPane(schemaTextArea);
         leftTabPanel.add("Schema", schemaScrollPane);
-
 
         splitPane.setLeftComponent(leftPanel);
 
-        // Create a button to format the JSON in the text area
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new FlowLayout());
-        JButton formatButton = new JButton("Format");
-        JButton validateButton = new JButton("Validate");
-        JButton sanitize = new JButton("Sanitize");
+        // Buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        formatButton = new JButton("Format");
+        validateButton = new JButton("Validate");
+        sanitizeButton = new JButton("Sanitize");
         buttonPanel.add(formatButton);
         buttonPanel.add(validateButton);
-        buttonPanel.add(sanitize);
+        buttonPanel.add(sanitizeButton);
         leftPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-        // Create the right panel (empty)
+        // Right panel
         JPanel rightPanel = new JPanel(new BorderLayout());
-        JTabbedPane rightTabPanel = new JTabbedPane();
+        rightTabPanel = new JTabbedPane();
 
-        JTree jsonTree = new JTree();
+        jsonTree = new JTree();
         jsonTree.setVisible(false);
-        JScrollPane treeScrollPane = new JScrollPane(jsonTree);
-        rightTabPanel.add("JSON Tree",treeScrollPane);
+        treeScrollPane = new JScrollPane(jsonTree);
+        rightTabPanel.add("JSON Tree", treeScrollPane);
 
-        JTextArea rightTextArea = new JTextArea();
+        rightTextArea = new JTextArea();
         rightTextArea.setEditable(false);
-        rightTextArea.setText("");
-        JScrollPane rightTextScrollPane = new JScrollPane(rightTextArea);  // Adding scroll capability
-        rightTextScrollPane.setVisible(true);
-        rightTabPanel.add("Validation",rightTextScrollPane);
+        JScrollPane rightTextScrollPane = new JScrollPane(rightTextArea);
+        rightTabPanel.add("Validation", rightTextScrollPane);
         rightPanel.add(rightTabPanel, BorderLayout.CENTER);
 
-        JButton visualizeButton = new JButton("Visualize JSON");
+        visualizeButton = new JButton("Visualize JSON");
         rightPanel.add(visualizeButton, BorderLayout.SOUTH);
 
         splitPane.setRightComponent(rightPanel);
 
-        // Action listener to format the text in the text area
-        formatButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String unformattedJson = objectTextPane.getText();
-                String formattedJson = formatJson(unformattedJson);
-                objectTextPane.setText(formattedJson);
+        // Wire button actions
+        formatButton.addActionListener(e -> doFormat());
+        visualizeButton.addActionListener(e -> doVisualize());
+        validateButton.addActionListener(e -> doValidate());
+        sanitizeButton.addActionListener(e -> doSanitize());
 
-                unformattedJson = schemaTextPane.getText();
-                formattedJson = formatJson(unformattedJson);
-                schemaTextPane.setText(formattedJson);
-            }
+        // Track modifications
+        objectTextArea.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { markModified(); }
+            @Override public void removeUpdate(DocumentEvent e) { markModified(); }
+            @Override public void changedUpdate(DocumentEvent e) { markModified(); }
         });
 
-        visualizeButton.addActionListener(e -> {
-            String jsonText = objectTextPane.getText();
-            if (jsonText != null && !jsonText.isEmpty()) {
-                try {
-                    // Convert the JSON string into a JSONObject
-                    JSONObject jsonObject = new JSONObject(new JSONTokener(jsonText));
+        // Cursor position tracking for status bar
+        objectTextArea.addCaretListener(this::updateCursorPosition);
 
-                    // Convert the JSONObject into a tree structure
-                    DefaultMutableTreeNode root = jsonToTree(jsonObject, "Object");
+        // Status bar
+        JPanel statusBar = createStatusBar();
 
-                    // Set the tree model to display
-                    jsonTree.setModel(new DefaultTreeModel(root.getRoot()));
-                    jsonTree.setVisible(true);
-                    // Expand all nodes in the tree
-                    expandAllNodes(jsonTree, 0, jsonTree.getRowCount());
-
-                    treeScrollPane.setVisible(true);
-
-                    rightTabPanel.setSelectedIndex(0);
-
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(frame, "Invalid JSON provided!", "Error", JOptionPane.ERROR_MESSAGE);
-                    ex.printStackTrace();
-                }
-            }
-        });
-
-        // Action listener for Validate JSON button to validate JSON against schema
-        validateButton.addActionListener(e -> {
-            String jsonText = objectTextPane.getText();
-            if (jsonText != null && !jsonText.isEmpty()) {
-                try {
-
-                    JsonValue schemaJson = new JsonParser(schemaTextPane.getText().toString()).parse();
-                    Schema schema = new SchemaLoader(schemaJson).load();
-
-                    Validator validator = Validator.create(schema, new ValidatorConfig(FormatValidationPolicy.DEPENDS_ON_VOCABULARY));
-                    JsonValue instance = new JsonParser(jsonText).parse();
-                    ValidationFailure failure = validator.validate(instance);
-                    if(failure==null) {
-
-                        rightTextArea.setText("JSON validated successfully against schema!");
-                        rightTabPanel.setSelectedIndex(1);
-                    }
-                    else {
-                        System.out.println(failure.toString());
-
-                        rightTextArea.setText(failure.toString());
-                        rightTabPanel.setSelectedIndex(1);
-                    }
-                    ArrayList<String> arrayList = new ArrayList();
-                    arrayList.add(rightTextArea.getText());
-                    arrayList.addAll(validateInwonerPlan(jsonText));
-
-                    rightTextArea.setText(arrayList.stream().collect(Collectors.joining("\n")));
-
-
-                }
-                catch (Exception ex) {
-                    JOptionPane.showMessageDialog(frame, "Exception occured " + ex.getMessage(), "Validation Error", JOptionPane.ERROR_MESSAGE);
-
-                }
-            } else {
-                JOptionPane.showMessageDialog(frame, "Please enter valid JSON text!", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        sanitize.addActionListener(e -> {
-
-            objectTextPane.setText(ontdubbelInwonerplan(objectTextPane.getText()));
-
-        });
-
-        // Add the split pane to the frame
         frame.add(splitPane, BorderLayout.CENTER);
+        frame.add(statusBar, BorderLayout.SOUTH);
 
-        // Set the frame to be visible
+        modified = false;
         frame.setVisible(true);
     }
 
+    private RSyntaxTextArea createSyntaxTextArea(boolean editable) {
+        RSyntaxTextArea textArea = new RSyntaxTextArea();
+        textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JSON);
+        textArea.setCodeFoldingEnabled(true);
+        textArea.setAntiAliasingEnabled(true);
+        textArea.setTabSize(2);
+        textArea.setEditable(editable);
+        applySyntaxTheme(textArea);
+        return textArea;
+    }
 
-    private static String readInwonerplanJson(){
-        String content = readFileFromResources("inwonerplan.json");
-        if (content != null) {
-            return content;
-        } else {
-            return "File not found or could not be loaded.";
+    private void applySyntaxTheme(RSyntaxTextArea textArea) {
+        try {
+            String themePath = darkTheme
+                    ? "/org/fife/ui/rsyntaxtextarea/themes/dark.xml"
+                    : "/org/fife/ui/rsyntaxtextarea/themes/idea.xml";
+            Theme theme = Theme.load(getClass().getResourceAsStream(themePath));
+            theme.apply(textArea);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    private static String readInwonerplanSchema(){
-        String content = readFileFromResources("schemas/inwonerplan.schema.json");
-        if (content != null) {
-            return content;
-        } else {
-            return "File not found or could not be loaded.";
+    // ---- Menu Bar ----
+
+    private JMenuBar createMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+
+        // File menu
+        JMenu fileMenu = new JMenu("File");
+        fileMenu.setMnemonic(KeyEvent.VK_F);
+
+        JMenuItem newItem = new JMenuItem("New");
+        newItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        newItem.addActionListener(e -> doNew());
+
+        JMenuItem openItem = new JMenuItem("Open...");
+        openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        openItem.addActionListener(e -> doOpen());
+
+        JMenuItem saveItem = new JMenuItem("Save");
+        saveItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        saveItem.addActionListener(e -> doSave());
+
+        JMenuItem saveAsItem = new JMenuItem("Save As...");
+        saveAsItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | InputEvent.SHIFT_DOWN_MASK));
+        saveAsItem.addActionListener(e -> doSaveAs());
+
+        JMenuItem exitItem = new JMenuItem("Exit");
+        exitItem.addActionListener(e -> doExit());
+
+        fileMenu.add(newItem);
+        fileMenu.add(openItem);
+        fileMenu.addSeparator();
+        fileMenu.add(saveItem);
+        fileMenu.add(saveAsItem);
+        fileMenu.addSeparator();
+        fileMenu.add(exitItem);
+
+        // Edit menu
+        JMenu editMenu = new JMenu("Edit");
+        editMenu.setMnemonic(KeyEvent.VK_E);
+
+        JMenuItem undoItem = new JMenuItem("Undo");
+        undoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        undoItem.addActionListener(e -> objectTextArea.undoLastAction());
+
+        JMenuItem redoItem = new JMenuItem("Redo");
+        redoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Y, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        redoItem.addActionListener(e -> objectTextArea.redoLastAction());
+
+        JMenuItem findItem = new JMenuItem("Find/Replace...");
+        findItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        findItem.addActionListener(e -> {
+            // RSyntaxTextArea has built-in Ctrl+H for find/replace; trigger the action
+            org.fife.ui.rtextarea.SearchEngine.find(objectTextArea,
+                    new org.fife.ui.rtextarea.SearchContext());
+        });
+
+        JMenuItem formatItem = new JMenuItem("Format JSON");
+        formatItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | InputEvent.SHIFT_DOWN_MASK));
+        formatItem.addActionListener(e -> doFormat());
+
+        editMenu.add(undoItem);
+        editMenu.add(redoItem);
+        editMenu.addSeparator();
+        editMenu.add(findItem);
+        editMenu.addSeparator();
+        editMenu.add(formatItem);
+
+        // Tools menu
+        JMenu toolsMenu = new JMenu("Tools");
+        toolsMenu.setMnemonic(KeyEvent.VK_T);
+
+        JMenuItem validateItem = new JMenuItem("Validate");
+        validateItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0));
+        validateItem.addActionListener(e -> doValidate());
+
+        JMenuItem sanitizeItem = new JMenuItem("Sanitize");
+        sanitizeItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F6, 0));
+        sanitizeItem.addActionListener(e -> doSanitize());
+
+        JMenuItem visualizeItem = new JMenuItem("Visualize Tree");
+        visualizeItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F7, 0));
+        visualizeItem.addActionListener(e -> doVisualize());
+
+        toolsMenu.add(validateItem);
+        toolsMenu.add(sanitizeItem);
+        toolsMenu.add(visualizeItem);
+
+        // View menu
+        JMenu viewMenu = new JMenu("View");
+        viewMenu.setMnemonic(KeyEvent.VK_V);
+
+        JCheckBoxMenuItem darkModeItem = new JCheckBoxMenuItem("Dark Theme");
+        darkModeItem.addActionListener(e -> toggleTheme(darkModeItem.isSelected()));
+
+        JCheckBoxMenuItem wordWrapItem = new JCheckBoxMenuItem("Word Wrap");
+        wordWrapItem.addActionListener(e -> {
+            boolean wrap = wordWrapItem.isSelected();
+            objectTextArea.setLineWrap(wrap);
+            schemaTextArea.setLineWrap(wrap);
+        });
+
+        viewMenu.add(darkModeItem);
+        viewMenu.add(wordWrapItem);
+
+        // Help menu
+        JMenu helpMenu = new JMenu("Help");
+        helpMenu.setMnemonic(KeyEvent.VK_H);
+
+        JMenuItem aboutItem = new JMenuItem("About");
+        aboutItem.addActionListener(e -> JOptionPane.showMessageDialog(frame,
+                "Inwonerplan Editor\nVersion 1.0.2\n\nJSON Schema validator and editor\nfor Gemeente Utrecht",
+                "About", JOptionPane.INFORMATION_MESSAGE));
+
+        helpMenu.add(aboutItem);
+
+        menuBar.add(fileMenu);
+        menuBar.add(editMenu);
+        menuBar.add(toolsMenu);
+        menuBar.add(viewMenu);
+        menuBar.add(helpMenu);
+        return menuBar;
+    }
+
+    // ---- Status Bar ----
+
+    private JPanel createStatusBar() {
+        JPanel statusBar = new JPanel(new BorderLayout());
+        statusBar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, UIManager.getColor("Separator.foreground")),
+                BorderFactory.createEmptyBorder(2, 8, 2, 8)));
+
+        statusFileLabel = new JLabel("Untitled");
+        statusCursorLabel = new JLabel("Ln 1, Col 1");
+        statusMessageLabel = new JLabel("Ready");
+
+        statusCursorLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        statusMessageLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        statusBar.add(statusFileLabel, BorderLayout.WEST);
+        statusBar.add(statusCursorLabel, BorderLayout.CENTER);
+        statusBar.add(statusMessageLabel, BorderLayout.EAST);
+        return statusBar;
+    }
+
+    private void updateCursorPosition(CaretEvent e) {
+        int pos = objectTextArea.getCaretPosition();
+        int line = objectTextArea.getDocument().getDefaultRootElement().getElementIndex(pos);
+        int col = pos - objectTextArea.getDocument().getDefaultRootElement().getElement(line).getStartOffset();
+        statusCursorLabel.setText("Ln " + (line + 1) + ", Col " + (col + 1));
+    }
+
+    private void setStatusMessage(String message) {
+        statusMessageLabel.setText(message);
+    }
+
+    // ---- File Operations ----
+
+    private void doNew() {
+        if (!confirmSaveIfModified()) return;
+        objectTextArea.setText("");
+        objectTextArea.discardAllEdits();
+        currentFile = null;
+        modified = false;
+        updateTitle();
+        setStatusMessage("New file");
+    }
+
+    private void doOpen() {
+        if (!confirmSaveIfModified()) return;
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileFilter(new FileNameExtensionFilter("JSON Files", "json"));
+        if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+            try {
+                String content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+                objectTextArea.setText(content);
+                objectTextArea.setCaretPosition(0);
+                objectTextArea.discardAllEdits();
+                currentFile = file;
+                modified = false;
+                updateTitle();
+                statusFileLabel.setText(file.getName());
+                setStatusMessage("Opened " + file.getName());
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(frame,
+                        "Error reading file: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
         }
+    }
+
+    private void doSave() {
+        if (currentFile == null) {
+            doSaveAs();
+        } else {
+            saveToFile(currentFile);
+        }
+    }
+
+    private void doSaveAs() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileFilter(new FileNameExtensionFilter("JSON Files", "json"));
+        if (currentFile != null) {
+            chooser.setSelectedFile(currentFile);
+        }
+        if (chooser.showSaveDialog(frame) == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+            if (!file.getName().endsWith(".json")) {
+                file = new File(file.getAbsolutePath() + ".json");
+            }
+            saveToFile(file);
+        }
+    }
+
+    private void saveToFile(File file) {
+        try {
+            Files.writeString(file.toPath(), objectTextArea.getText(), StandardCharsets.UTF_8);
+            currentFile = file;
+            modified = false;
+            updateTitle();
+            statusFileLabel.setText(file.getName());
+            setStatusMessage("Saved " + file.getName());
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(frame,
+                    "Error saving file: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void doExit() {
+        if (!confirmSaveIfModified()) return;
+        frame.dispose();
+        System.exit(0);
+    }
+
+    private boolean confirmSaveIfModified() {
+        if (!modified) return true;
+        int result = JOptionPane.showConfirmDialog(frame,
+                "You have unsaved changes. Save before continuing?",
+                "Unsaved Changes", JOptionPane.YES_NO_CANCEL_OPTION);
+        if (result == JOptionPane.YES_OPTION) {
+            doSave();
+            return !modified; // if save was cancelled, modified is still true
+        }
+        return result != JOptionPane.CANCEL_OPTION;
+    }
+
+    private void markModified() {
+        if (!modified) {
+            modified = true;
+            updateTitle();
+        }
+    }
+
+    private void updateTitle() {
+        String name = currentFile != null ? currentFile.getName() : "Untitled";
+        String mod = modified ? " *" : "";
+        frame.setTitle("Inwonerplan Editor — " + name + mod);
+    }
+
+    // ---- Theme Switching ----
+
+    private void toggleTheme(boolean dark) {
+        darkTheme = dark;
+        try {
+            if (dark) {
+                FlatDarculaLaf.setup();
+            } else {
+                FlatIntelliJLaf.setup();
+            }
+            SwingUtilities.updateComponentTreeUI(frame);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        applySyntaxTheme(objectTextArea);
+        applySyntaxTheme(schemaTextArea);
+    }
+
+    // ---- Action Methods ----
+
+    private void doFormat() {
+        String text = objectTextArea.getText();
+        formatButton.setEnabled(false);
+        frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<String, Void>() {
+            @Override
+            protected String doInBackground() {
+                return formatJson(text);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    objectTextArea.setText(get());
+                    setStatusMessage("Formatted");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(frame,
+                            "Error formatting JSON: " + ex.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    formatButton.setEnabled(true);
+                    frame.setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
+    }
+
+    private void doVisualize() {
+        String jsonText = objectTextArea.getText();
+        if (jsonText == null || jsonText.isEmpty()) return;
+
+        visualizeButton.setEnabled(false);
+        frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<DefaultMutableTreeNode, Void>() {
+            @Override
+            protected DefaultMutableTreeNode doInBackground() throws Exception {
+                JsonNode rootNode = objectMapper.readTree(jsonText);
+                return jsonToTree(rootNode, "Object", 0);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    DefaultMutableTreeNode root = get();
+                    jsonTree.setModel(new DefaultTreeModel(root));
+                    jsonTree.setVisible(true);
+                    expandNodes(jsonTree, MAX_TREE_EXPAND_DEPTH);
+                    treeScrollPane.setVisible(true);
+                    rightTabPanel.setSelectedIndex(0);
+                    setStatusMessage("Tree visualized");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(frame,
+                            "Invalid JSON provided!",
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                } finally {
+                    visualizeButton.setEnabled(true);
+                    frame.setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
+    }
+
+    private void doValidate() {
+        String jsonText = objectTextArea.getText();
+        if (jsonText == null || jsonText.isEmpty()) {
+            JOptionPane.showMessageDialog(frame,
+                    "Please enter valid JSON text!",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        validateButton.setEnabled(false);
+        frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        String schemaText = schemaTextArea.getText();
+        new SwingWorker<String, Void>() {
+            @Override
+            protected String doInBackground() throws Exception {
+                List<String> results = new ArrayList<>();
+
+                JsonValue schemaJson = new JsonParser(schemaText).parse();
+                Schema schema = new SchemaLoader(schemaJson).load();
+                Validator validator = Validator.create(schema,
+                        new ValidatorConfig(FormatValidationPolicy.DEPENDS_ON_VOCABULARY));
+                JsonValue instance = new JsonParser(jsonText).parse();
+                ValidationFailure failure = validator.validate(instance);
+
+                if (failure == null) {
+                    results.add("JSON validated successfully against schema!");
+                } else {
+                    results.add(failure.toString());
+                }
+
+                results.addAll(InwonerplanDomainValidator.validateInwonerPlan(objectMapper, jsonText));
+
+                return results.stream().collect(Collectors.joining("\n"));
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    String result = get();
+                    rightTextArea.setText(result);
+                    rightTabPanel.setSelectedIndex(1);
+                    long errorCount = result.lines().count();
+                    if (result.contains("validated successfully")) {
+                        setStatusMessage("Validation passed");
+                    } else {
+                        setStatusMessage(errorCount + " validation issue(s)");
+                    }
+                } catch (Exception ex) {
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                    JOptionPane.showMessageDialog(frame,
+                            "Exception occurred: " + cause.getMessage(),
+                            "Validation Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    validateButton.setEnabled(true);
+                    frame.setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
+    }
+
+    private void doSanitize() {
+        String text = objectTextArea.getText();
+        sanitizeButton.setEnabled(false);
+        frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<String, Void>() {
+            @Override
+            protected String doInBackground() throws Exception {
+                return InwonerplanSanitizer.ontdubbelInwonerplan(objectMapper, text);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    objectTextArea.setText(get());
+                    setStatusMessage("Sanitized");
+                } catch (Exception ex) {
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                    JOptionPane.showMessageDialog(frame,
+                            cause.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    sanitizeButton.setEnabled(true);
+                    frame.setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
+    }
+
+    // ---- Resource Reading ----
+
+    private static String readInwonerplanJson() {
+        String content = readFileFromResources("inwonerplan.json");
+        return content != null ? content : "File not found or could not be loaded.";
+    }
+
+    private static String readInwonerplanSchema() {
+        String content = readFileFromResources("schemas/inwonerplan.schema.json");
+        return content != null ? content : "File not found or could not be loaded.";
     }
 
     private static String readFileFromResources(String filename) {
         StringBuilder content = new StringBuilder();
         try {
-            // Get the file as an InputStream from the resource folder
             InputStream inputStream = InwonerplanValidator.class.getClassLoader().getResourceAsStream(filename);
             if (inputStream == null) {
                 System.err.println("File not found: " + filename);
                 return null;
             }
-
-            // Read the file content
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
@@ -256,21 +662,15 @@ public class InwonerplanValidator {
             e.printStackTrace();
             return null;
         }
-
         return content.toString();
     }
 
+    // ---- JSON Formatting ----
+
     public static String formatJson(String unformattedJson) {
         try {
-
-
-            // Read the unformatted JSON string into a generic Object (Map/POJO)
             Object json = objectMapper.readValue(unformattedJson, Object.class);
-
-            // Create ObjectWriter for pretty printing
             ObjectWriter writer = objectMapper.writerWithDefaultPrettyPrinter();
-
-            // Write the formatted JSON string
             return writer.writeValueAsString(json);
         } catch (Exception e) {
             e.printStackTrace();
@@ -278,244 +678,40 @@ public class InwonerplanValidator {
         }
     }
 
-    // Helper function to visualize the JSON object in a tree format
-    public static DefaultMutableTreeNode jsonToTree(JSONObject jsonObject, String key) {
-        DefaultMutableTreeNode root = new DefaultMutableTreeNode(key);
+    // ---- Tree Building ----
 
-        // Iterate through the keys of the JSONObject
-        for (Iterator<String> it = jsonObject.keys(); it.hasNext(); ) {
-            String currentKey = it.next();
-            Object value = jsonObject.get(currentKey);
+    private static DefaultMutableTreeNode jsonToTree(JsonNode node, String key, int depth) {
+        if (depth > MAX_TREE_DEPTH) {
+            return new DefaultMutableTreeNode(key + ": [depth limit reached]");
+        }
 
-            if (value instanceof JSONObject) {
-                // Recursively add JSONObject nodes
-                root.add(jsonToTree((JSONObject) value, currentKey));
-            } else if (value instanceof JSONArray) {
-                // Handle JSONArray separately
-                root.add(jsonArrayToTree((JSONArray) value, currentKey));
-            } else {
-                // Add primitive values (string, numbers, etc.)
-                root.add(new DefaultMutableTreeNode(currentKey + ": " + value.toString()));
+        if (node.isObject()) {
+            DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(key);
+            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> field = fields.next();
+                treeNode.add(jsonToTree(field.getValue(), field.getKey(), depth + 1));
             }
-        }
-
-        return root;
-    }
-
-    // Helper function to visualize a JSONArray in the tree
-    public static DefaultMutableTreeNode jsonArrayToTree(JSONArray array, String key) {
-        DefaultMutableTreeNode root = new DefaultMutableTreeNode(key);
-
-        for (int i = 0; i < array.length(); i++) {
-            Object value = array.get(i);
-
-            if (value instanceof JSONObject) {
-                // Recursively add JSONObject nodes
-                root.add(jsonToTree((JSONObject) value, "[" + i + "]"));
-            } else if (value instanceof JSONArray) {
-                // Recursively add JSONArray nodes
-                root.add(jsonArrayToTree((JSONArray) value, "[" + i + "]"));
-            } else {
-                // Add primitive values (string, numbers, etc.)
-                root.add(new DefaultMutableTreeNode("[" + i + "]: " + value.toString()));
+            return treeNode;
+        } else if (node.isArray()) {
+            DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(key);
+            for (int i = 0; i < node.size(); i++) {
+                treeNode.add(jsonToTree(node.get(i), "[" + i + "]", depth + 1));
             }
-        }
-
-        return root;
-    }
-
-    public static void expandAllNodes(JTree tree, int startingIndex, int rowCount) {
-        for (int i = startingIndex; i < rowCount; i++) {
-            tree.expandRow(i);
-        }
-
-        // If new nodes have been added after expanding, ensure they are expanded as well
-        if (tree.getRowCount() != rowCount) {
-            expandAllNodes(tree, rowCount, tree.getRowCount());
+            return treeNode;
+        } else {
+            return new DefaultMutableTreeNode(key + ": " + node.asText());
         }
     }
 
-
-    private static ArrayList<String> validateInwonerPlan(String inwonerplan){
-        ArrayList<String> response = new ArrayList<>();
-        InwonerplanSchema inwonerplanObj;
-        try {
-
-            inwonerplanObj = objectMapper.readValue(inwonerplan, InwonerplanSchema.class);
-        } catch (JsonProcessingException e) {
-            response.add(e.getMessage());
-            return response;
-        }
-
-        //elk inwonerplan moet een zaak hebben
-        if(StringUtils.isEmpty(inwonerplanObj.getZaaknummer()))
-            response.add("Zaaknummer is empty!");
-
-        if(StringUtils.isEmpty(inwonerplanObj.getInwonerprofielId()))
-            response.add("Inwonerprofiel is empty!");
-
-        if(inwonerplanObj.getInwonerplan().getDoelen().size()<=0){
-            response.add("Een inwonerplan moet minimaal 1 doel hebben");
-        }
-
-        response.add("Validatie ok");
-        return response;
-    }
-
-    /*
-    functie om dubbel aanbod, activiteiten en subdoelen op te schonen
-     */
-    private static String ontdubbelInwonerplan(String inwonerplan){
-        String inwonerplanJson = cleanupJson(inwonerplan);
-        InwonerplanSchema inwonerplanObj = null;
-        try {
-            inwonerplanObj = objectMapper.readValue(inwonerplanJson, InwonerplanSchema.class);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(new JFrame(), e.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-
-        for(Doel doel: inwonerplanObj.getInwonerplan().getDoelen()){
-            for(Subdoel s: doel.getSubdoelen()){
-                ArrayList<Aanbod> newAanbodList = new ArrayList<>();
-                for(Aanbod currentAanbod: s.getAanbod()){
-                    if(!aanbodListContains(newAanbodList,currentAanbod)){
-                        newAanbodList.add(currentAanbod);
-                    }
-                }
-                s.setAanbod(newAanbodList);
-                ArrayList<Activiteit> newActiviteitenList = new ArrayList<>();
-                for(Activiteit currentActiviteit:s.getActiviteiten()){
-                    if(!activiteitListContains(newActiviteitenList,currentActiviteit)){
-                        newActiviteitenList.add(currentActiviteit);
-                    }
-                }
-                s.setActiviteiten(newActiviteitenList);
+    private static void expandNodes(JTree tree, int maxExpandDepth) {
+        int row = 0;
+        while (row < tree.getRowCount()) {
+            TreePath path = tree.getPathForRow(row);
+            if (path != null && path.getPathCount() <= maxExpandDepth) {
+                tree.expandRow(row);
             }
-        }
-
-        /* nieuwe functie om meer te schonen
-        * als identieke subdoelen in het inwonerplan staan schonen we alle afgeronde subdoelen van dat type af
-        *
-        * */
-        for(Doel doel: inwonerplanObj.getInwonerplan().getDoelen()){
-            if(doel.getCodeStatusDoel().equalsIgnoreCase("1")){
-                ArrayList subdoelList = new ArrayList<Subdoel>();
-                for(Subdoel s: doel.getSubdoelen()){
-                    if(doel.getSubdoelen().stream().filter(subdoel -> subdoelEquals(subdoel,s)).count()>1){
-                        if(!s.getCodeStatusSubdoel().equalsIgnoreCase("2")){
-                            subdoelList.add(s);
-                        }
-                    }
-                }
-                doel.setSubdoelen(subdoelList);
-            }
-        }
-
-        try {
-            return objectMapper.writeValueAsString(inwonerplanObj);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        } catch (Exception e){
-            e.printStackTrace();
-            throw new RuntimeException(e);
+            row++;
         }
     }
-
-    private static boolean aanbodListContains(ArrayList<Aanbod> aanbodList,Aanbod aanbod){
-        for(Aanbod aanbod2: aanbodList){
-            if(aanbodEquals(aanbod2,aanbod)){
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean aanbodEquals(Aanbod a1, Aanbod a2){
-        if(a1==null||a2==null){
-            return false;
-        }
-        if(!a1.getCodeAanbod().equalsIgnoreCase(a2.getCodeAanbod())){
-            return false;
-        }
-
-        //if(ChronoUnit.MINUTES.between(a1.getBegindatum().toGregorianCalendar().toZonedDateTime(), a2.getBegindatum().toGregorianCalendar().toZonedDateTime()) > 1){
-        /*if(ChronoUnit.MINUTES.between(a1.getBegindatum(), a2.getBegindatum()) > 1){
-            return false;
-        }*/
-
-        if(StringUtils.compareIgnoreCase(a1.getCodeRedenStatusAanbod(), a2.getCodeRedenStatusAanbod())>0){
-            return false;
-        }
-
-        if(StringUtils.compareIgnoreCase(a1.getCodeResultaatAanbod(), a2.getCodeResultaatAanbod())>0){
-            return false;
-        }
-        return true;
-    }
-
-    private static boolean subdoelEquals(Subdoel s1, Subdoel s2){
-        if(s1.getAandachtspuntId().equalsIgnoreCase(s2.getAandachtspuntId()) && s1.getAandachtspuntId()!=null && s2.getAandachtspuntId()!=null){
-            return true;
-        }
-
-        if(s1.getOntwikkelwensId().equalsIgnoreCase(s2.getOntwikkelwensId()) && s1.getOntwikkelwensId()!=null && s2.getOntwikkelwensId()!=null){
-            return true;
-        }
-
-        return false;
-    }
-
-    private static boolean activiteitListContains(ArrayList<Activiteit> activiteitList,Activiteit activiteit){
-        for(Activiteit activiteit2: activiteitList){
-            if(activiteitEquals(activiteit2,activiteit)){
-                return true;
-            }
-        }
-        return false;
-    }
-    private static boolean activiteitEquals(Activiteit a1, Activiteit a2){
-        if(a1==null||a2==null){
-            return false;
-        }
-        if( a1.getUuid().equalsIgnoreCase(a2.getUuid())) {
-            return true;
-        }
-        if(a1.getCodeAanbod().equalsIgnoreCase(a2.getCodeAanbod()) && a1.getCodeAanbodactiviteit().equalsIgnoreCase(a2.getCodeAanbodactiviteit())) {
-            return true;
-        }
-        return false;
-    }
-
-    private static String cleanupJson(String inwonerplan) {
-
-        String inwonerplanJson = inwonerplan.replaceAll("(None)","null");
-        inwonerplanJson = inwonerplanJson.replaceAll("True","true");
-
-
-        inwonerplanJson = trimDateTimeNanoseconds(inwonerplanJson);
-        // Replace all occurrences, keeping only the first three digits of the nanoseconds and appending 'Z'
-        inwonerplanJson = inwonerplanJson.replaceAll("(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\d*(Z?)","$1Z");
-        inwonerplanJson = inwonerplanJson.replaceAll("\\[GMT\\]","");
-        //er staan data geregistreerd op exact 00:00:00.000 ; dat is geen geldig format dus omzetten naar 1 seconden later
-        inwonerplanJson = inwonerplanJson.replaceAll("00:00:00.00000Z","00:00:01.001Z");
-        inwonerplanJson = inwonerplanJson.replaceAll("\\+\\d\\d:?\\d\\d","Z");
-
-        return inwonerplanJson;
-    }
-
-    public static String trimDateTimeNanoseconds(String input) {
-        // Regex pattern to match the datetime string with the nanoseconds part
-        String regex = "(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\d*(Z?)";
-        // Compile the pattern
-        Pattern pattern = Pattern.compile(regex);
-        // Create a matcher to find occurrences of the pattern
-        Matcher matcher = pattern.matcher(input);
-
-        // Replace all occurrences, keeping only the first three digits of the nanoseconds and appending 'Z'
-        return matcher.replaceAll("$1Z");
-    }
-
 }
