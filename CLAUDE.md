@@ -27,9 +27,10 @@ ObjectValidator (aka InwonerplanValidator) is a Java Swing desktop application f
 
 ## Architecture
 
-**Two source files** in `src/main/java/com/ritense/`:
-- `InwonerplanValidator.java` — The entire application: Swing GUI, JSON schema validation (json-sKema), formatting, tree visualization, sanitization logic, and domain-specific validation rules
-- `TextLineNumber.java` — Swing utility component that renders line numbers alongside text areas
+**Three source files** in `src/main/java/com/ritense/`:
+- `InwonerplanValidator.java` — Main application: Swing GUI (FlatLaf L&F, RSyntaxTextArea editor), menu bar, file open/save, JSON formatting, tree visualization
+- `InwonerplanSanitizer.java` — Sanitization logic: deduplication of doelen, subdoelen, aanbod, and activiteiten
+- `InwonerplanDomainValidator.java` — Domain-specific validation rules (beyond JSON Schema validation)
 
 **Generated code** in `build/generated-sources/js2p/com/ritense/`:
 - POJOs generated from `src/main/resources/schemas/inwonerplan.schema.json` by the `jsonschema2pojo` Gradle plugin
@@ -40,12 +41,19 @@ ObjectValidator (aka InwonerplanValidator) is a Java Swing desktop application f
 - `schemas/inwonerplan.schema.json` — JSON Schema (Draft-07) defining the Inwonerplan structure
 - `inwonerplan.json` — Sample data loaded as default in the editor
 
+## UI Stack
+
+- **FlatLaf** (`com.formdev:flatlaf:3.5.4`) — Modern flat Look & Feel with light (FlatIntelliJLaf) and dark (FlatDarculaLaf) themes
+- **RSyntaxTextArea** (`com.fifesoft:rsyntaxtextarea:3.5.3`) — JSON syntax highlighting, code folding, built-in line numbers, bracket matching
+- Menu bar with keyboard shortcuts: File (New/Open/Save/Save As), Edit (Undo/Redo/Find/Format), Tools (Validate F5/Sanitize F6/Visualize F7), View (Dark Theme/Word Wrap), Help
+- Status bar showing filename, cursor position (Ln/Col), and last operation result
+
 ## Key Technical Details
 
 - **Java 17+** (CI uses Temurin-17, Gradle toolchain supports 17 and 21)
 - **Gradle 8.5** with Kotlin DSL (`build.gradle.kts`)
 - **JSON validation** uses `com.github.erosb:json-sKema` (not everit or networknt)
-- **JSON manipulation** uses `org.json` (JSONObject/JSONArray) alongside Jackson for serialization
+- **JSON manipulation** uses Jackson for serialization and tree building
 - **Domain language** is Dutch — field names, comments, and validation messages are in Dutch
 - **No tests exist** currently; the test framework (JUnit 5) is configured but `src/test/` has no files
 - **No linter/formatter** is configured
