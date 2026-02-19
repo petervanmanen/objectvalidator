@@ -24,9 +24,9 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.0")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.0")
     implementation("org.apache.commons:commons-lang3:3.12.0")
-    implementation("org.json:json:20240303")
     implementation("com.github.erosb:json-sKema:0.18.0")
-    implementation ("joda-time:joda-time:2.13.0")
+    implementation("com.formdev:flatlaf:3.5.4")
+    implementation("com.fifesoft:rsyntaxtextarea:3.5.3")
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
