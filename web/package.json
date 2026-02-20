@@ -1,0 +1,22 @@
+{
+  "name": "inwonerplan-validator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@codemirror/lang-json": "^6.0.1",
+    "@codemirror/search": "^6.5.8",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "codemirror": "^6.0.1"
+  },
+  "devDependencies": {
+    "vite": "^6.1.0"
+  }
+}

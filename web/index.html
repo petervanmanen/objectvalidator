@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="nl" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inwonerplan Editor</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <!-- Menu bar -->
+  <nav class="menubar">
+    <div class="menu-group">
+      <div class="menu-item" data-menu="file">
+        <button class="menu-trigger">File</button>
+        <div class="menu-dropdown">
+          <button data-action="new"><span>New</span><kbd>Ctrl+N</kbd></button>
+          <button data-action="open"><span>Open...</span><kbd>Ctrl+O</kbd></button>
+          <hr />
+          <button data-action="save"><span>Save</span><kbd>Ctrl+S</kbd></button>
+          <button data-action="save-as"><span>Save As...</span><kbd>Ctrl+Shift+S</kbd></button>
+        </div>
+      </div>
+      <div class="menu-item" data-menu="edit">
+        <button class="menu-trigger">Edit</button>
+        <div class="menu-dropdown">
+          <button data-action="undo"><span>Undo</span><kbd>Ctrl+Z</kbd></button>
+          <button data-action="redo"><span>Redo</span><kbd>Ctrl+Y</kbd></button>
+          <hr />
+          <button data-action="find"><span>Find/Replace...</span><kbd>Ctrl+F</kbd></button>
+          <hr />
+          <button data-action="format"><span>Format JSON</span><kbd>Ctrl+Shift+F</kbd></button>
+        </div>
+      </div>
+      <div class="menu-item" data-menu="tools">
+        <button class="menu-trigger">Tools</button>
+        <div class="menu-dropdown">
+          <button data-action="validate"><span>Validate</span><kbd>F5</kbd></button>
+          <button data-action="sanitize"><span>Sanitize</span><kbd>F6</kbd></button>
+          <button data-action="visualize"><span>Visualize Tree</span><kbd>F7</kbd></button>
+        </div>
+      </div>
+      <div class="menu-item" data-menu="view">
+        <button class="menu-trigger">View</button>
+        <div class="menu-dropdown">
+          <label class="menu-checkbox"><input type="checkbox" id="darkThemeToggle" /> Dark Theme</label>
+          <label class="menu-checkbox"><input type="checkbox" id="wordWrapToggle" /> Word Wrap</label>
+        </div>
+      </div>
+      <div class="menu-item" data-menu="help">
+        <button class="menu-trigger">Help</button>
+        <div class="menu-dropdown">
+          <button data-action="about"><span>About</span></button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <div class="main-container">
+    <!-- Left panel -->
+    <div class="panel left-panel">
+      <div class="tab-bar">
+        <button class="tab active" data-tab="object">Object</button>
+        <button class="tab" data-tab="schema">Schema</button>
+      </div>
+      <div class="tab-content">
+        <div class="tab-pane active" id="tab-object">
+          <div id="editor-object"></div>
+        </div>
+        <div class="tab-pane" id="tab-schema">
+          <div id="editor-schema"></div>
+        </div>
+      </div>
+      <div class="button-bar">
+        <button id="btn-format">Format</button>
+        <button id="btn-validate">Validate</button>
+        <button id="btn-sanitize">Sanitize</button>
+      </div>
+    </div>
+
+    <!-- Resize handle -->
+    <div class="resize-handle" id="resize-handle"></div>
+
+    <!-- Right panel -->
+    <div class="panel right-panel">
+      <div class="tab-bar">
+        <button class="tab active" data-tab="tree">JSON Tree</button>
+        <button class="tab" data-tab="validation">Validation</button>
+      </div>
+      <div class="tab-content">
+        <div class="tab-pane active" id="tab-tree">
+          <div id="json-tree" class="tree-container"></div>
+        </div>
+        <div class="tab-pane" id="tab-validation">
+          <pre id="validation-output" class="validation-output"></pre>
+        </div>
+      </div>
+      <div class="button-bar">
+        <button id="btn-visualize">Visualize JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <footer class="statusbar">
+    <span id="status-file">Untitled</span>
+    <span id="status-cursor">Ln 1, Col 1</span>
+    <span id="status-message">Ready</span>
+  </footer>
+
+  <!-- Hidden file input -->
+  <input type="file" id="file-input" accept=".json" style="display:none" />
+
+  <!-- About dialog -->
+  <dialog id="about-dialog">
+    <h3>Inwonerplan Editor</h3>
+    <p>Version 2.0.0 (Web)</p>
+    <p>JSON Schema validator and editor<br />for Gemeente Utrecht</p>
+    <form method="dialog"><button>OK</button></form>
+  </dialog>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

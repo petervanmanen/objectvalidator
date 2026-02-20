@@ -1,0 +1,470 @@
+/* ---- CSS Variables (Light Theme) ---- */
+:root,
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #e8e8e8;
+  --bg-editor: #ffffff;
+  --text-primary: #1e1e1e;
+  --text-secondary: #6b6b6b;
+  --border-color: #d0d0d0;
+  --accent: #2979ff;
+  --accent-hover: #1565c0;
+  --tab-active-bg: #ffffff;
+  --tab-inactive-bg: #e8e8e8;
+  --tab-active-border: #2979ff;
+  --button-bg: #e8e8e8;
+  --button-hover: #d0d0d0;
+  --button-text: #1e1e1e;
+  --statusbar-bg: #f0f0f0;
+  --menu-bg: #ffffff;
+  --menu-hover: #e8e8e8;
+  --tree-key: #0451a5;
+  --tree-string: #a31515;
+  --tree-number: #098658;
+  --tree-bool: #0000ff;
+  --tree-null: #6b6b6b;
+  --validation-success: #098658;
+  --validation-error: #d32f2f;
+  --resize-handle: #c0c0c0;
+  --dialog-bg: #ffffff;
+  --kbd-bg: #e8e8e8;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] {
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-tertiary: #333333;
+  --bg-editor: #1e1e1e;
+  --text-primary: #d4d4d4;
+  --text-secondary: #858585;
+  --border-color: #404040;
+  --accent: #4fc3f7;
+  --accent-hover: #29b6f6;
+  --tab-active-bg: #1e1e1e;
+  --tab-inactive-bg: #2d2d2d;
+  --tab-active-border: #4fc3f7;
+  --button-bg: #333333;
+  --button-hover: #444444;
+  --button-text: #d4d4d4;
+  --statusbar-bg: #007acc;
+  --menu-bg: #252526;
+  --menu-hover: #094771;
+  --tree-key: #9cdcfe;
+  --tree-string: #ce9178;
+  --tree-number: #b5cea8;
+  --tree-bool: #569cd6;
+  --tree-null: #858585;
+  --validation-success: #6a9955;
+  --validation-error: #f44747;
+  --resize-handle: #555555;
+  --dialog-bg: #252526;
+  --kbd-bg: #333333;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Reset ---- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+/* ---- Layout ---- */
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+.main-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.left-panel {
+  flex: 1 1 50%;
+  min-width: 200px;
+}
+
+.right-panel {
+  flex: 1 1 50%;
+  min-width: 200px;
+}
+
+/* ---- Resize Handle ---- */
+.resize-handle {
+  width: 5px;
+  cursor: col-resize;
+  background: var(--resize-handle);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.resize-handle:hover,
+.resize-handle.dragging {
+  background: var(--accent);
+}
+
+/* ---- Menu Bar ---- */
+.menubar {
+  display: flex;
+  align-items: center;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 4px;
+  height: 30px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.menu-group {
+  display: flex;
+  gap: 0;
+}
+
+.menu-item {
+  position: relative;
+}
+
+.menu-trigger {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 3px;
+}
+
+.menu-trigger:hover,
+.menu-item.open .menu-trigger {
+  background: var(--menu-hover);
+}
+
+.menu-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--menu-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  min-width: 220px;
+  padding: 4px 0;
+  z-index: 1000;
+}
+
+.menu-item.open .menu-dropdown {
+  display: block;
+}
+
+.menu-dropdown button,
+.menu-dropdown label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 16px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.menu-dropdown button:hover,
+.menu-dropdown label:hover {
+  background: var(--menu-hover);
+  color: var(--text-primary);
+}
+
+.menu-dropdown hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 4px 0;
+}
+
+.menu-dropdown kbd {
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--kbd-bg);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 16px;
+}
+
+.menu-checkbox {
+  gap: 8px;
+}
+
+.menu-checkbox input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+/* ---- Tabs ---- */
+.tab-bar {
+  display: flex;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.tab {
+  padding: 6px 16px;
+  border: none;
+  background: var(--tab-inactive-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+
+.tab:hover {
+  color: var(--text-primary);
+}
+
+.tab.active {
+  background: var(--tab-active-bg);
+  color: var(--text-primary);
+  border-bottom-color: var(--tab-active-border);
+}
+
+.tab-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.tab-pane {
+  display: none;
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+}
+
+.tab-pane.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Editor (CodeMirror) ---- */
+.tab-pane .cm-editor {
+  flex: 1;
+  height: 100%;
+  font-size: 13px;
+}
+
+.tab-pane .cm-editor .cm-scroller {
+  overflow: auto;
+}
+
+/* ---- Button Bar ---- */
+.button-bar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.button-bar button {
+  padding: 6px 16px;
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+
+.button-bar button:hover {
+  background: var(--button-hover);
+}
+
+.button-bar button:active {
+  transform: translateY(1px);
+}
+
+/* ---- Status Bar ---- */
+.statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 12px;
+  background: var(--statusbar-bg);
+  border-top: 1px solid var(--border-color);
+  font-size: 12px;
+  flex-shrink: 0;
+  height: 24px;
+}
+
+[data-theme="dark"] .statusbar {
+  color: #ffffff;
+}
+
+.statusbar span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#status-file { flex: 0 0 auto; }
+#status-cursor { flex: 1; text-align: center; }
+#status-message { flex: 0 0 auto; }
+
+/* ---- Tree View ---- */
+.tree-container {
+  padding: 12px;
+  font-family: "SF Mono", "Consolas", "Monaco", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow: auto;
+  flex: 1;
+}
+
+.tree-container details {
+  margin-left: 16px;
+}
+
+.tree-container details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 1px 0;
+}
+
+.tree-container details > summary::before {
+  content: "\25B6";
+  display: inline-block;
+  width: 14px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  transition: transform 0.15s;
+}
+
+.tree-container details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.tree-container .tree-key {
+  color: var(--tree-key);
+}
+
+.tree-container .tree-string {
+  color: var(--tree-string);
+}
+
+.tree-container .tree-number {
+  color: var(--tree-number);
+}
+
+.tree-container .tree-bool {
+  color: var(--tree-bool);
+}
+
+.tree-container .tree-null {
+  color: var(--tree-null);
+  font-style: italic;
+}
+
+.tree-container .tree-leaf {
+  margin-left: 16px;
+  padding: 1px 0;
+  padding-left: 14px;
+}
+
+.tree-container .tree-count {
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+/* ---- Validation Output ---- */
+.validation-output {
+  padding: 12px;
+  font-family: "SF Mono", "Consolas", "Monaco", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: auto;
+  flex: 1;
+  color: var(--text-primary);
+}
+
+.validation-output .success {
+  color: var(--validation-success);
+}
+
+.validation-output .error {
+  color: var(--validation-error);
+}
+
+/* ---- Dialog ---- */
+dialog {
+  background: var(--dialog-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  max-width: 360px;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+dialog h3 {
+  margin-bottom: 8px;
+}
+
+dialog p {
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+
+dialog button {
+  margin-top: 12px;
+  padding: 6px 24px;
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+dialog button:hover {
+  background: var(--accent-hover);
+}
+
+/* ---- Placeholder when tree is empty ---- */
+.tree-container:empty::after {
+  content: "Click 'Visualize JSON' to see a tree view";
+  color: var(--text-secondary);
+  font-style: italic;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}

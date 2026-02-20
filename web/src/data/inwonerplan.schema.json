@@ -1,0 +1,403 @@
+{
+  "$id": "http://www.utrecht.nl/inwonerplan.schema",
+  "type": "object",
+  "title": "Inwonerplan",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "required": [],
+  "properties": {
+    "zaaknummer": {
+      "type": "string",
+      "description": "Zaaknummer"
+    },
+    "inwonerplan": {
+      "$ref": "#/definitions/inwonerplan",
+      "type": "object"
+    },
+    "dienstverlening": {
+      "enum": [
+        "WERK",
+        "INBURGERING"
+      ],
+      "type": "string",
+      "description": "Indicatie of dit inwonerplan bij een Werk of Inburgering dossier hoort."
+    },
+    "inwonerprofielId": {
+      "type": "string",
+      "description": "UUID van het inwonerprofiel"
+    }
+  },
+  "definitions": {
+    "doel": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "einddatum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "subdoelen": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/subdoel"
+          }
+        },
+        "begindatum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "codeNaamDoel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "codeStatusDoel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Doel",
+      "additionalArrays": false,
+      "additionalProperties": false
+    },
+    "aanbod": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "einddatum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "begindatum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "codeAanbod": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "documenten": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/valtimoFile"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "datumGestart": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "rmwCbsSrgCode": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Tijdelijk veld om de vroegere RMW CBS-SRG Code in op te slaan zodat deze later eenvoudig geconverteerd kan worden. Dit veld kan worden verwijderd nadat de RMW migratie volledig is afgerond."
+        },
+        "codeStatusAanbod": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "codeResultaatAanbod": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "codeRedenStatusAanbod": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Aanbod",
+      "additionalArrays": false,
+      "additionalProperties": false
+    },
+    "subdoel": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "aanbod": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/aanbod"
+          }
+        },
+        "einddatum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "begindatum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "activiteiten": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/activiteit"
+          }
+        },
+        "aandachtspuntId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "UUID van het aandachtspunt"
+        },
+        "codeNaamSubdoel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ontwikkelwensId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "UUID van de ontwikkelwens"
+        },
+        "codeStatusSubdoel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Subdoel",
+      "additionalArrays": false,
+      "additionalProperties": false
+    },
+    "activiteit": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notitie": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "einddatum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "aanbodUuid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "begindatum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "codeAanbod": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "documenten": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/valtimoFile"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "omschrijving": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "naamActiviteit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "afhandeltermijn": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "codeActiehouder": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "codeAanbodactiviteit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "codeActiviteitOverig": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "codeStatusActiviteit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "geplandeAfhandeldatum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      },
+      "description": "Activiteit",
+      "additionalArrays": false,
+      "additionalProperties": false
+    },
+    "inwonerplan": {
+      "type": "object",
+      "properties": {
+        "doelen": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/doel"
+          }
+        },
+        "notitie": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Inwonerplan",
+      "additionalArrays": false,
+      "additionalProperties": false
+    },
+    "valtimoFile": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/definitions/valtimoFileData"
+        },
+        "size": {
+          "type": "number"
+        },
+        "type": {
+          "type": "string"
+        },
+        "storage": {
+          "type": "string"
+        },
+        "customUpload": {
+          "type": "boolean"
+        },
+        "originalName": {
+          "type": "string"
+        }
+      },
+      "additionalArrays": false,
+      "additionalProperties": false
+    },
+    "valtimoFileData": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "createdOn": {
+          "type": "string"
+        },
+        "extension": {
+          "type": "string"
+        },
+        "resourceId": {
+          "type": "string"
+        },
+        "sizeInBytes": {
+          "type": "integer"
+        }
+      },
+      "additionalArrays": false,
+      "additionalProperties": false
+    }
+  },
+  "additionalArrays": false,
+  "additionalProperties": false
+}
