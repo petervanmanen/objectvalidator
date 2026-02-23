@@ -63,6 +63,9 @@ function init() {
 
   // Wire keyboard shortcuts
   document.addEventListener('keydown', handleKeydown);
+
+  // Restore saved preferences
+  restorePreferences();
 }
 
 // ---- Tab Switching ----
@@ -143,16 +146,11 @@ function wireMenuBar() {
 
   // View toggles
   $('#darkThemeToggle').addEventListener('change', (e) => {
-    const dark = e.target.checked;
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-    setDarkTheme(objectEditor, dark);
-    setDarkTheme(schemaEditor, dark);
+    applyDarkTheme(e.target.checked);
   });
 
   $('#wordWrapToggle').addEventListener('change', (e) => {
-    const wrap = e.target.checked;
-    setWordWrap(objectEditor, wrap);
-    setWordWrap(schemaEditor, wrap);
+    applyWordWrap(e.target.checked);
   });
 }
 
@@ -379,4 +377,33 @@ function updateCursor() {
 
 function setStatus(message) {
   $('#status-message').textContent = message;
+}
+
+// ---- Preferences (localStorage) ----
+
+function applyDarkTheme(dark) {
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  setDarkTheme(objectEditor, dark);
+  setDarkTheme(schemaEditor, dark);
+  localStorage.setItem('darkTheme', dark);
+}
+
+function applyWordWrap(wrap) {
+  setWordWrap(objectEditor, wrap);
+  setWordWrap(schemaEditor, wrap);
+  localStorage.setItem('wordWrap', wrap);
+}
+
+function restorePreferences() {
+  const dark = localStorage.getItem('darkTheme') === 'true';
+  if (dark) {
+    $('#darkThemeToggle').checked = true;
+    applyDarkTheme(true);
+  }
+
+  const wrap = localStorage.getItem('wordWrap') === 'true';
+  if (wrap) {
+    $('#wordWrapToggle').checked = true;
+    applyWordWrap(true);
+  }
 }
