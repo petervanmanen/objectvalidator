@@ -13,7 +13,6 @@ import {
 import { sanitizeInwonerplan } from './sanitizer.js';
 import { validateInwonerplan } from './validator.js';
 import { renderTree } from './tree.js';
-import defaultData from './data/inwonerplan.json';
 import schemaData from './data/inwonerplan.schema.json';
 
 // ---- State ----
@@ -30,7 +29,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 function init() {
   // Create editors
-  objectEditor = createEditor($('#editor-object'), JSON.stringify(defaultData, null, 2), {
+  objectEditor = createEditor($('#editor-object'), '', {
     onUpdate: () => markModified(),
   });
 

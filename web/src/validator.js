@@ -21,11 +21,6 @@ function validateDomain(obj) {
   const results = [];
   let hasErrors = false;
 
-  if (!obj.zaaknummer) {
-    results.push('Zaaknummer is empty!');
-    hasErrors = true;
-  }
-
   if (!obj.inwonerprofielId) {
     results.push('Inwonerprofiel is empty!');
     hasErrors = true;
